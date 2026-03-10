@@ -1,0 +1,126 @@
+import { useState, useEffect, useRef } from 'react';
+import { AuthUser, Driver, LoginResponse, WSAlert } from './types';
+import { apiFetch, WS_URL } from './utils/api';
+import Nav from './components/Nav';
+import { AlertToast } from './components/shared';
+import LoginPage from './pages/LoginPage';
+import DashboardPage from './pages/DashboardPage';
+import EarningsPage from './pages/EarningsPage';
+import TripPage from './pages/TripPage';
+import AdminOverviewPage from './pages/AdminOverviewPage';
+import AdminDriverPage from './pages/AdminDriverPage';
+
+export default function App() {
+  const [user,         setUser]         = useState<AuthUser | null>(null);
+  const [driver,       setDriver]       = useState<Driver | null>(null);
+  const [page,         setPage]         = useState('dashboard');
+  const [selectedTrip, setSelectedTrip] = useState<string | null>(null);
+  const [adminDriver,  setAdminDriver]  = useState<string | null>(null);
+  const [alerts,       setAlerts]       = useState<WSAlert[]>([]);
+  const wsRef = useRef<WebSocket | null>(null);
+
+  // Auto-login from stored token
+  useEffect(() => {
+    const token = localStorage.getItem('dp_token');
+    if (!token) return;
+    try {
+      const payload = JSON.parse(atob(token.split('.')[0])) as AuthUser;
+      setUser(payload);
+      if (payload.role === 'driver') {
+        apiFetch<Driver>(`/drivers/${payload.sub}`).then(setDriver).catch(() => {});
+        setPage('dashboard');
+      } else {
+        setPage('overview');
+      }
+    } catch (_) {}
+  }, []);
+
+  function handleLogin(data: LoginResponse) {
+    const payload = JSON.parse(atob(data.token.split('.')[0])) as AuthUser;
+    setUser(payload);
+    if (data.driver) {
+      setDriver(data.driver);
+      setPage('dashboard');
+      connectWS(payload.sub, data.token);
+    } else {
+      setPage('overview');
+    }
+  }
+
+  function connectWS(driverId: string, token: string) {
+    try {
+      const ws = new WebSocket(WS_URL);
+      ws.onopen = () => {
+        ws.send(JSON.stringify({ type: 'auth', token }));
+        ws.send(JSON.stringify({ type: 'ping' }));
+      };
+      ws.onmessage = (e) => {
+        const msg = JSON.parse(e.data);
+        if (msg.type === 'alert') {
+          const stamped = { ...msg, id: Date.now() } as WSAlert;
+          setAlerts(prev => [...prev.slice(-4), stamped]);
+          setTimeout(() => setAlerts(prev => prev.filter(a => a.id !== stamped.id)), 8000);
+        }
+      };
+      wsRef.current = ws;
+    } catch (_) {}
+  }
+
+  function handleLogout() {
+    localStorage.removeItem('dp_token');
+    if (wsRef.current) wsRef.current.close();
+    setUser(null); setDriver(null);
+    setPage('dashboard'); setAlerts([]);
+  }
+
+  if (!user) return <LoginPage onLogin={handleLogin}/>;
+
+  const isAdmin  = user.role === 'admin';
+  const driverId = user.sub;
+
+  const renderPage = () => {
+    if (page === 'trip' && selectedTrip) {
+      return (
+        <TripPage
+          tripId={selectedTrip}
+          onBack={() => setPage(isAdmin ? 'driver_detail' : 'dashboard')}
+        />
+      );
+    }
+    if (page === 'driver_detail' && adminDriver) {
+      return (
+        <AdminDriverPage
+          driverId={adminDriver}
+          onBack={() => setPage('overview')}
+          setPage={setPage}
+          setSelectedTrip={setSelectedTrip}
+        />
+      );
+    }
+    if (isAdmin) {
+      return (
+        <AdminOverviewPage
+          setPage={setPage}
+          setSelectedTrip={setSelectedTrip}
+          setAdminDriver={setAdminDriver}
+        />
+      );
+    }
+    if (page === 'earnings') return <EarningsPage driverId={driverId}/>;
+    return (
+      <DashboardPage
+        driverId={driverId}
+        setPage={setPage}
+        setSelectedTrip={setSelectedTrip}
+      />
+    );
+  };
+
+  return (
+    <div className="layout">
+      <Nav page={page} setPage={setPage} user={user} driver={driver} onLogout={handleLogout}/>
+      {renderPage()}
+      <AlertToast alerts={alerts} onDismiss={(id) => setAlerts(prev => prev.filter(a => a.id !== id))}/>
+    </div>
+  );
+}
