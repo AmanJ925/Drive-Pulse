@@ -1,5 +1,4 @@
 """
-routers/api.py — DrivePulse REST API
 
 Fixed bugs:
   1. Earnings: dashboard card now sums actual trip fares (matches graph/earnings page)
@@ -24,16 +23,13 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
-# ─────────────────────────────────────────────────────────────────────────────
+
 # CORE LOGIC — single source of truth for all derived fields
-# ─────────────────────────────────────────────────────────────────────────────
+
 
 def _correct_severity(motion_score: float, audio_score: float,
                       combined_score: float) -> str:
     """
-    Recompute flag severity from actual scores.
-    CSV severity is 66% wrong — never trust it.
-
     Rules (match original spec):
       motion + audio both triggered (≥0.6 each) → HIGH
       combined ≥ 0.75                            → HIGH
@@ -106,7 +102,7 @@ def _compute_trip_stats(real_flags: list[dict]) -> dict:
 
 
 def _correct_flags(flags: list[dict]) -> list[dict]:
-    """Return flags with severity recomputed from actual scores."""
+    """Returning flags with severity recomputed from actual scores."""
     corrected = []
     for f in flags:
         sev = _correct_severity(f.get("motion_score", 0),
@@ -116,9 +112,9 @@ def _correct_flags(flags: list[dict]) -> list[dict]:
     return corrected
 
 
-# ─────────────────────────────────────────────────────────────────────────────
+
 # SENSOR SYNTHESIS
-# ─────────────────────────────────────────────────────────────────────────────
+
 
 def _synthesize_accel(trip_id: str, duration_sec: int,
                       stress_score: float, motion_events: int,
@@ -226,9 +222,9 @@ def _synthesize_velocity_log(driver_id: str, goal: dict, trips: list) -> list:
     return log
 
 
-# ─────────────────────────────────────────────────────────────────────────────
+
 # AUTH HELPERS
-# ─────────────────────────────────────────────────────────────────────────────
+
 
 def _require_auth(authorization: str = "") -> dict:
     token = authorization.replace("Bearer ", "").strip()
@@ -244,9 +240,9 @@ def _require_admin(authorization: str = "") -> dict:
     return user
 
 
-# ─────────────────────────────────────────────────────────────────────────────
+
 # AUTH
-# ─────────────────────────────────────────────────────────────────────────────
+
 
 class LoginRequest(BaseModel):
     driver_id: Optional[str] = None
@@ -265,9 +261,9 @@ def login(body: LoginRequest):
     return r
 
 
-# ─────────────────────────────────────────────────────────────────────────────
+
 # DRIVERS
-# ─────────────────────────────────────────────────────────────────────────────
+
 
 @router.get("/drivers")
 def list_drivers(authorization: str = Header("")):
@@ -284,9 +280,9 @@ def get_driver(driver_id: str, authorization: str = Header("")):
     return rows[0]
 
 
-# ─────────────────────────────────────────────────────────────────────────────
+
 # TRIPS
-# ─────────────────────────────────────────────────────────────────────────────
+
 
 @router.get("/trips")
 def list_trips(driver_id: Optional[str] = None, date: Optional[str] = None,
@@ -321,19 +317,19 @@ def get_trip(trip_id: str, authorization: str = Header("")):
     if not rows: raise HTTPException(404, "Trip not found")
     trip = dict(rows[0])
 
-    # ── Flags: recompute severity from actual scores ───────────────────────
+    # ── Flags: recompute severity from actual scores 
     raw_flags = query("SELECT * FROM flagged_moments WHERE trip_id=? ORDER BY elapsed_seconds", (trip_id,))
     flags     = _correct_flags(raw_flags)
     trip["flags"]                 = flags
     trip["flagged_moments_count"] = len(flags)  # overwrite stale CSV value
 
-    # ── Recompute all derived stats from actual flags ─────────────────────
+    # ── Recompute all derived stats from actual flags 
     stats = _compute_trip_stats(flags)
     trip["trip_quality_rating"] = stats["trip_quality_rating"]
     trip["stress_score"]        = stats["stress_score"]
     trip["safety_score"]        = stats["safety_score"]
 
-    # ── Sensor data ───────────────────────────────────────────────────────
+    # ── Sensor data 
     duration_sec        = int(float(trip.get("duration_min") or 20) * 60)
     trip["duration_sec"] = duration_sec
 
@@ -351,9 +347,9 @@ def get_trip(trip_id: str, authorization: str = Header("")):
     return trip
 
 
-# ─────────────────────────────────────────────────────────────────────────────
+
 # FLAGS
-# ─────────────────────────────────────────────────────────────────────────────
+
 
 @router.get("/flags/{trip_id}")
 def get_flags(trip_id: str, authorization: str = Header("")):
@@ -362,10 +358,10 @@ def get_flags(trip_id: str, authorization: str = Header("")):
     return _correct_flags(flags)
 
 
-# ─────────────────────────────────────────────────────────────────────────────
+
 # EARNINGS
 # BUG FIX: use goal.current_earnings as the single canonical earnings figure
-# ─────────────────────────────────────────────────────────────────────────────
+
 
 @router.get("/earnings/{driver_id}")
 def get_earnings(driver_id: str, date: Optional[str] = None, authorization: str = Header("")):
@@ -399,8 +395,13 @@ def get_earnings(driver_id: str, date: Optional[str] = None, authorization: str 
     last          = velocity_log[-1] if velocity_log else None
     target_earn   = float(goal.get("target_earnings", 1400))
     target_hours  = float(goal.get("target_hours", 8))
-    # Canonical current earnings = goal.current_earnings (not sum of fares)
-    current_earn  = float(goal.get("current_earnings") or 0)
+    # Single source of truth: sum trip fares — same as dashboard
+    all_trips    = query(
+        "SELECT fare FROM trips WHERE driver_id=? AND date=?",
+        (driver_id, target_date))
+    if not all_trips:
+        all_trips = query("SELECT fare FROM trips WHERE driver_id=?", (driver_id,))
+    current_earn  = sum(float(t.get("fare") or 0) for t in all_trips)
     predicted_end = current_earn
     if last:
         remaining     = max(0, target_hours - last["elapsed_hours"])
@@ -416,10 +417,10 @@ def get_earnings(driver_id: str, date: Optional[str] = None, authorization: str 
     }
 
 
-# ─────────────────────────────────────────────────────────────────────────────
+
 # DASHBOARD
 # BUG FIX: use goal.current_earnings (same source as earnings page)
-# ─────────────────────────────────────────────────────────────────────────────
+
 
 @router.get("/dashboard/{driver_id}")
 def get_dashboard(driver_id: str, date: Optional[str] = None, authorization: str = Header("")):
@@ -450,7 +451,7 @@ def get_dashboard(driver_id: str, date: Optional[str] = None, authorization: str
     # Sum real flag counts (already recomputed above from flagged_moments table)
     flagged   = sum(t["flagged_moments_count"] for t in today_trips)
 
-    # ── SINGLE SOURCE OF TRUTH for earnings ─────────────────────────────────
+    # ── SINGLE SOURCE OF TRUTH for earnings 
     # Sum actual trip fares — matches what the Earnings page graph computes
     current_earn = sum(float(t.get("fare") or 0) for t in today_trips)
     target_earn  = float(goal.get("target_earnings", 1400))
@@ -473,9 +474,9 @@ def get_dashboard(driver_id: str, date: Optional[str] = None, authorization: str
     }
 
 
-# ─────────────────────────────────────────────────────────────────────────────
+
 # ADMIN
-# ─────────────────────────────────────────────────────────────────────────────
+
 
 @router.get("/admin/drivers")
 def admin_drivers(authorization: str = Header("")):
