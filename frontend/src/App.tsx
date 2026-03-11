@@ -8,19 +8,16 @@ import DashboardPage from './pages/DashboardPage';
 import EarningsPage from './pages/EarningsPage';
 import TripPage from './pages/TripPage';
 import AdminOverviewPage from './pages/AdminOverviewPage';
-import AdminDriverPage from './pages/AdminDriverPage';
 
 export default function App() {
   const [user,         setUser]         = useState<AuthUser | null>(null);
   const [driver,       setDriver]       = useState<Driver | null>(null);
   const [page,         setPage]         = useState('dashboard');
   const [selectedTrip, setSelectedTrip] = useState<string | null>(null);
-  const [adminDriver,  setAdminDriver]  = useState<string | null>(null);
   const [alerts,       setAlerts]       = useState<WSAlert[]>([]);
   const [authChecked,  setAuthChecked]  = useState(false);
   const wsRef = useRef<WebSocket | null>(null);
 
-  // Auto-login from stored token — validate with backend first
   useEffect(() => {
     const token = localStorage.getItem('dp_token');
     if (!token) { setAuthChecked(true); return; }
@@ -34,7 +31,6 @@ export default function App() {
       return;
     }
 
-    // Check expiry locally before hitting the API
     const exp = (payload as AuthUser & { exp?: number }).exp;
     if (exp && exp * 1000 < Date.now()) {
       localStorage.removeItem('dp_token');
@@ -42,28 +38,20 @@ export default function App() {
       return;
     }
 
-    // Validate with backend — 401 clears token and shows login
     if (payload.role === 'driver') {
       apiFetch<Driver>(`/drivers/${payload.sub}`)
-        .then(driver => {
+        .then(d => {
           setUser(payload);
-          setDriver(driver);
+          setDriver(d);
           setPage('dashboard');
           connectWS(payload.sub, token);
         })
-        .catch(() => {
-          localStorage.removeItem('dp_token');
-        })
+        .catch(() => localStorage.removeItem('dp_token'))
         .finally(() => setAuthChecked(true));
     } else {
       apiFetch<unknown>('/admin/stats')
-        .then(() => {
-          setUser(payload);
-          setPage('overview');
-        })
-        .catch(() => {
-          localStorage.removeItem('dp_token');
-        })
+        .then(() => { setUser(payload); setPage('overview'); })
+        .catch(() => localStorage.removeItem('dp_token'))
         .finally(() => setAuthChecked(true));
     }
   }, []);
@@ -107,7 +95,6 @@ export default function App() {
     setPage('dashboard'); setAlerts([]);
   }
 
-  // Don't render until token check is done — prevents flash of wrong UI
   if (!authChecked && !user) return null;
   if (!user) return <LoginPage onLogin={handleLogin}/>;
 
@@ -119,17 +106,7 @@ export default function App() {
       return (
         <TripPage
           tripId={selectedTrip}
-          onBack={() => setPage(isAdmin ? 'driver_detail' : 'dashboard')}
-        />
-      );
-    }
-    if (page === 'driver_detail' && adminDriver) {
-      return (
-        <AdminDriverPage
-          driverId={adminDriver}
-          onBack={() => setPage('overview')}
-          setPage={setPage}
-          setSelectedTrip={setSelectedTrip}
+          onBack={() => setPage(isAdmin ? 'overview' : 'dashboard')}
         />
       );
     }
@@ -138,7 +115,7 @@ export default function App() {
         <AdminOverviewPage
           setPage={setPage}
           setSelectedTrip={setSelectedTrip}
-          setAdminDriver={setAdminDriver}
+          setAdminDriver={() => {}}
         />
       );
     }
