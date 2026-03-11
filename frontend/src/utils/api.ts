@@ -20,5 +20,7 @@ export async function apiFetch<T>(path: string, opts: RequestInit = {}): Promise
 }
 
 export const WS_URL =
-  (window.location.protocol === 'https:' ? 'wss://' : 'ws://') +
-  window.location.host + '/stream_sensor_data';
+  import.meta.env.DEV
+    ? 'ws://localhost:8000/stream_sensor_data'
+    : (window.location.protocol === 'https:' ? 'wss://' : 'ws://') +
+      window.location.host + '/stream_sensor_data';

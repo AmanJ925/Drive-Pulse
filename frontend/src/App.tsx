@@ -17,27 +17,61 @@ export default function App() {
   const [selectedTrip, setSelectedTrip] = useState<string | null>(null);
   const [adminDriver,  setAdminDriver]  = useState<string | null>(null);
   const [alerts,       setAlerts]       = useState<WSAlert[]>([]);
+  const [authChecked,  setAuthChecked]  = useState(false);
   const wsRef = useRef<WebSocket | null>(null);
 
-  // Auto-login from stored token
+  // Auto-login from stored token — validate with backend first
   useEffect(() => {
     const token = localStorage.getItem('dp_token');
-    if (!token) return;
+    if (!token) { setAuthChecked(true); return; }
+
+    let payload: AuthUser;
     try {
-      const payload = JSON.parse(atob(token.split('.')[0])) as AuthUser;
-      setUser(payload);
-      if (payload.role === 'driver') {
-        apiFetch<Driver>(`/drivers/${payload.sub}`).then(setDriver).catch(() => {});
-        setPage('dashboard');
-      } else {
-        setPage('overview');
-      }
-    } catch (_) {}
+      payload = JSON.parse(atob(token.split('.')[0])) as AuthUser;
+    } catch (_) {
+      localStorage.removeItem('dp_token');
+      setAuthChecked(true);
+      return;
+    }
+
+    // Check expiry locally before hitting the API
+    const exp = (payload as AuthUser & { exp?: number }).exp;
+    if (exp && exp * 1000 < Date.now()) {
+      localStorage.removeItem('dp_token');
+      setAuthChecked(true);
+      return;
+    }
+
+    // Validate with backend — 401 clears token and shows login
+    if (payload.role === 'driver') {
+      apiFetch<Driver>(`/drivers/${payload.sub}`)
+        .then(driver => {
+          setUser(payload);
+          setDriver(driver);
+          setPage('dashboard');
+          connectWS(payload.sub, token);
+        })
+        .catch(() => {
+          localStorage.removeItem('dp_token');
+        })
+        .finally(() => setAuthChecked(true));
+    } else {
+      apiFetch<unknown>('/admin/stats')
+        .then(() => {
+          setUser(payload);
+          setPage('overview');
+        })
+        .catch(() => {
+          localStorage.removeItem('dp_token');
+        })
+        .finally(() => setAuthChecked(true));
+    }
   }, []);
 
   function handleLogin(data: LoginResponse) {
     const payload = JSON.parse(atob(data.token.split('.')[0])) as AuthUser;
     setUser(payload);
+    setAuthChecked(true);
     if (data.driver) {
       setDriver(data.driver);
       setPage('dashboard');
@@ -73,6 +107,8 @@ export default function App() {
     setPage('dashboard'); setAlerts([]);
   }
 
+  // Don't render until token check is done — prevents flash of wrong UI
+  if (!authChecked && !user) return null;
   if (!user) return <LoginPage onLogin={handleLogin}/>;
 
   const isAdmin  = user.role === 'admin';
