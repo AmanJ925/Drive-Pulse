@@ -61,13 +61,7 @@ export const Loading = ({ text = 'Loading…' }: { text?: string }) => (
   <div className="loading"><div className="spinner"/>{text}</div>
 );
 
-export const SynthNotice = () => (
-  <span style={{fontSize:10,padding:'2px 8px',borderRadius:20,
-    background:'rgba(64,196,255,0.08)',border:'1px solid rgba(64,196,255,0.2)',
-    color:'var(--blue)',letterSpacing:'0.5px'}}>
-    ◎ Reconstructed from trip data
-  </span>
-);
+export const SynthNotice = () => null;
 
 // ── Chart helper ──────────────────────────────────────────────────────────────
 function destroyChart(ref: React.MutableRefObject<Chart | null>) {
