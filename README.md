@@ -1,85 +1,90 @@
-# DrivePulse v5
+# DrivePulse
 
-Driver Safety & Earnings Insights — Uber Hackathon
+DrivePulse is a standalone driver safety and earnings analytics project. It provides deep insights into driver behavior, safety, and financial performance by analyzing telemetry data and earnings velocity.
 
-## Stack
+## Features
+
+- **Safety Scoring:** Evaluates driving patterns using synthesized sensor data to produce real-time safety scores.
+- **Earnings Velocity:** Tracks current earnings against shift targets and forecasts goal completion.
+- **Trip Analytics:** Provides detailed trip-level insights including flagged moments and quality ratings.
+
+## Tech Stack
 
 | Layer    | Tech                                    |
 |----------|-----------------------------------------|
 | Backend  | Python · FastAPI · SQLite               |
 | Frontend | React 18 · TypeScript · Vite · Chart.js |
 
-## Quick Start
-
-### Production (build frontend → serve via FastAPI)
-```bash
-cd dp_v5
-pip install -r requirements.txt
-cd backend
-python main.py
-
-cd dp_v5/frontend
-npm install
-npm run dev
-# Backend  → http://localhost:8000
-# Frontend → http://localhost:5173  (Vite dev server, proxies /api)
-```
-
 ## Project Structure
 
 ```
-dp_v5/
+Drive-Pulse/
 ├── backend/
 │   ├── data/           # CSV source data
-│   ├── routers/
-│   │   ├── api.py      # REST endpoints
-│   │   └── ws.py       # WebSocket live telemetry
-│   ├── services/
-│   │   └── ingestion.py
+│   ├── routers/        # REST endpoints and WebSockets
+│   ├── services/       # Data ingestion services
 │   ├── auth.py
 │   ├── config.py
 │   ├── database.py
 │   └── main.py
-├── frontend/
-│   ├── src/
-│   │   ├── components/
-│   │   │   ├── Nav.tsx
-│   │   │   └── shared.tsx   # Charts, badges, icons
-│   │   ├── pages/
-│   │   │   ├── LoginPage.tsx
-│   │   │   ├── DashboardPage.tsx
-│   │   │   ├── TripPage.tsx
-│   │   │   ├── EarningsPage.tsx
-│   │   │   ├── AdminOverviewPage.tsx
-│   │   │   └── AdminDriverPage.tsx
-│   │   ├── hooks/
-│   │   │   └── useAuth.tsx
-│   │   ├── types/
-│   │   │   └── index.ts
-│   │   ├── utils/
-│   │   │   └── api.ts
-│   │   ├── App.tsx
-│   │   ├── main.tsx
-│   │   └── index.css
-│   ├── index.html
-│   ├── vite.config.ts
-│   ├── tsconfig.json
-│   └── package.json
-├── requirements.txt
-├── run.sh          # build + run
-├── dev.sh          # hot-reload dev mode
-└── .gitignore      # excludes __pycache__, *.pyc, node_modules, etc.
+├── frontend/           # React frontend application
+├── tests/              # Backend regression tests
+├── requirements.txt    # Python dependencies
+├── Dockerfile          # Container build instructions
+└── .dockerignore
+```
+
+## Quick Start (Local Setup)
+
+### Prerequisites
+
+- Python 3.11+
+- Node.js & npm
+
+### Backend
+
+```bash
+pip install -r requirements.txt
+cd backend
+python main.py
+# Backend API available at http://localhost:8000
+```
+
+### Frontend
+
+```bash
+cd frontend
+npm install
+npm run dev
+# Frontend available at http://localhost:5173
+```
+
+## Docker
+
+You can build and run the entire application using Docker:
+
+```bash
+# Build the image
+docker build -t drive-pulse-silver .
+
+# Run the container
+docker run -p 8000:8000 drive-pulse-silver
+```
+
+## Testing
+
+Backend behaviors are verified using `pytest`.
+
+```bash
+# Run tests and show coverage report
+python -m pytest tests --cov=backend --cov-report=term-missing
 ```
 
 ## Demo Credentials
+
+Use these credentials to explore the local seeded data:
 
 | Role   | ID / Password           |
 |--------|-------------------------|
 | Driver | DRV001–DRV010, password = ID |
 | Admin  | password = `admin123`   |
-
-## Key Bug Fixes (from v4)
-
-1. **Earnings card** — now sums actual trip fares (not stale CSV `goal.current_earnings`)
-2. **Flags card** — now counts from `flagged_moments` table (not stale CSV `trip_summaries`)
-3. **No `.pyc` files** — excluded via `.gitignore`; Python compiles them only at runtime
