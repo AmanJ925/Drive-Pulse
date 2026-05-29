@@ -1,14 +1,3 @@
-"""
-
-Fixed bugs:
-  1. Earnings: dashboard card now sums actual trip fares (matches graph/earnings page)
-  2. Flags: flagged_events card and per-trip flag count now use real count from
-     flagged_moments table (not stale CSV trip_summaries values)
-  3. Safety score: recomputed from actual flags — 0 flags = 100, not from unreliable CSV stress_score
-  4. Flag severity: recomputed from motion_score + audio_score (66% of CSV values were wrong)
-  5. Quality: recomputed from recalculated stress (not CSV)
-  6. Sensor synthesis: consistent 30s step, correct flag placement
-"""
 from __future__ import annotations
 import logging, math, random
 from typing import Optional
