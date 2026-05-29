@@ -133,7 +133,7 @@ export function AccelChart({ data, flags, durationSec }: {
             ticks: { color: '#666', font: { family: 'DM Mono', size: 10 }, callback: v => `${v}g` } },
         },
       },
-    } as Parameters<typeof Chart>[1]);
+    } as any);
     return () => destroyChart(chartRef);
   }, [data, flags, durationSec]);
 
@@ -218,7 +218,7 @@ export function AudioChart({ data, flags, durationSec }: {
             ticks: { color: '#666', font: { family: 'DM Mono', size: 10 }, callback: v => `${v} dB` } },
         },
       },
-    } as Parameters<typeof Chart>[1]);
+    } as any);
     return () => destroyChart(chartRef);
   }, [data, flags, durationSec]);
 
