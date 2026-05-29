@@ -50,12 +50,12 @@ if frontend_dir.exists():
 def api_root():
     return {"service": "DrivePulse API", "version": "1.0.0", "docs": "/docs"}
 
-    @app.get("/{full_path:path}", include_in_schema=False)
-    async def serve_spa(full_path: str):
-        index = frontend_dir / "index.html"
-        if index.exists():
-            return FileResponse(str(index))
-        return {"error": "Frontend not found"}
+@app.get("/{full_path:path}", include_in_schema=False)
+async def serve_spa(full_path: str):
+    index = frontend_dir / "index.html"
+    if index.exists():
+        return FileResponse(str(index))
+    return {"error": "Frontend not found"}
 
 
 @app.on_event("startup")

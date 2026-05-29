@@ -11,13 +11,21 @@ build/
 *.so
 .env
 .venv
+.venv/
 venv/
 env/
 *.db
 *.sqlite3
 
+# Test Coverage
+.coverage
+coverage/
+htmlcov/
+.pytest_cache/
+
 # Node
 node_modules/
+frontend/node_modules/
 frontend/dist/
 frontend/.vite/
 
