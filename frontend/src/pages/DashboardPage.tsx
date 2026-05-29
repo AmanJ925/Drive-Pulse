@@ -374,7 +374,7 @@ function LiveAudioChart({ points, alerts }: {
   );
 }
 
-// ─── Live Monitor Demo Component ─────────────────────────────────────────────
+// ─── Live Monitor Component ─────────────────────────────────────────────
 function LiveMonitor() {
   const [active,      setActive]      = useState(false);
   const [elapsed,     setElapsed]     = useState(0);
@@ -481,7 +481,7 @@ function LiveMonitor() {
                 padding:'6px 14px',borderRadius:6,border:'1px solid rgba(0,230,118,0.3)',
                 background:'rgba(0,230,118,0.08)',color:'var(--green)',cursor:'pointer',
                 fontSize:11,fontFamily:'var(--font-mono)',letterSpacing:'0.5px'}}>
-                ▶ Start Demo Trip
+                ▶ Start Live Trip
               </button>
             : <button onClick={handleStop} style={{
                 padding:'6px 14px',borderRadius:6,border:'1px solid rgba(255,82,82,0.3)',
@@ -498,7 +498,7 @@ function LiveMonitor() {
         <div className="idle-state">
           <div style={{fontSize:28,opacity:0.25,letterSpacing:8}}>◦ ◦ ◦</div>
           <div style={{fontSize:12,color:'var(--text3)'}}>
-            Press "Start Demo Trip" to see live sensor monitoring
+            Press "Start Live Trip" to see live sensor monitoring
           </div>
           <div style={{fontSize:10,color:'var(--text3)',opacity:0.6,marginTop:4}}>
             Charts use same Chart.js style as trip detail · Scrolling time axis · 1s tick
@@ -591,7 +591,7 @@ function LiveMonitor() {
 
           {/* Data source note */}
           <div style={{marginTop:10,fontSize:10,color:'var(--text3)',textAlign:'center'}}>
-            Demo mode · Synthetic sensor data (not from CSV) · Mirrors live WebSocket schema:
+            Synthetic sensor data (not from CSV) · Mirrors live WebSocket schema:
             &nbsp;<code style={{color:'var(--text3)'}}>{'{ ax, ay, az, audio_db }'}</code> at
             &nbsp;<code style={{color:'var(--text3)'}}>/stream_sensor_data</code>
           </div>

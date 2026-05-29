@@ -57,7 +57,7 @@ export default function LoginPage({ onLogin }: { onLogin: (data: LoginResponse) 
           <input
             className="form-input"
             type="password"
-            placeholder={isAdmin ? 'Enter admin password' : 'Same as Driver ID for demo'}
+            placeholder={isAdmin ? 'Enter admin password' : 'Same as Driver ID for local testing'}
             value={password}
             onChange={e => setPassword(e.target.value)}
           />
@@ -75,7 +75,7 @@ export default function LoginPage({ onLogin }: { onLogin: (data: LoginResponse) 
         </div>
         <div style={{marginTop:16,padding:'10px 12px',background:'var(--bg3)',borderRadius:6,
           fontSize:11,color:'var(--text2)',lineHeight:1.8}}>
-          <strong style={{color:'var(--text)'}}>Demo:</strong><br/>
+          <strong style={{color:'var(--text)'}}>Local Testing:</strong><br/>
           Driver: any ID from DRV001–DRV010, password = ID<br/>
           Admin: password = admin123
         </div>

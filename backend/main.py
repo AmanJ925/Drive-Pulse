@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 app = FastAPI(
     title="DrivePulse API",
     version="1.0.0",
-    description="Driver Safety & Earnings Insights — Uber Hackathon",
+    description="Driver Safety & Earnings Insights",
 )
 
 app.add_middleware(
@@ -46,6 +46,10 @@ if not frontend_dir.exists():
 if frontend_dir.exists():
     app.mount("/static", StaticFiles(directory=str(frontend_dir)), name="static")
 
+@app.get("/api", tags=["Root"])
+def api_root():
+    return {"service": "DrivePulse API", "version": "1.0.0", "docs": "/docs"}
+
     @app.get("/{full_path:path}", include_in_schema=False)
     async def serve_spa(full_path: str):
         index = frontend_dir / "index.html"
@@ -65,9 +69,6 @@ async def startup():
     logger.info("=== Ready — docs at http://localhost:8000/docs ===")
 
 
-@app.get("/api", tags=["Root"])
-def api_root():
-    return {"service": "DrivePulse API", "version": "1.0.0", "docs": "/docs"}
 
 
 if __name__ == "__main__":

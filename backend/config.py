@@ -6,7 +6,7 @@ DATA_DIR  = BASE_DIR / "data"
 DB_PATH   = BASE_DIR / "drivepulse.db"
 
 # Auth
-SECRET_KEY = "drivepulse-hackathon-secret-2024"
+SECRET_KEY = "drivepulse-local-dev-secret-2024"
 ADMIN_PASSWORD = "admin123"
 
 # Sensor thresholds

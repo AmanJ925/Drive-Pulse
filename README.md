@@ -80,7 +80,7 @@ Backend behaviors are verified using `pytest`.
 python -m pytest tests --cov=backend --cov-report=term-missing
 ```
 
-## Demo Credentials
+## Local Credentials
 
 Use these credentials to explore the local seeded data:
 
